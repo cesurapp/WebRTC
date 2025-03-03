@@ -85,9 +85,9 @@ webRTC.sendMessage({
   data: 'Hello world'
 });
 
-// Receive messages
-webRTC.onMessage = (message) => {
-  console.log('Message received:', message);
+// When data message received
+webrtc.onDataMessage = (message) => {
+    console.log('Data Message: ', message);
 };
 ```
 
@@ -95,15 +95,15 @@ webRTC.onMessage = (message) => {
 
 ```javascript
 // When audio stream starts
-webrtc.onTrackAudio = (event) => {
+webrtc.onTrackAudio = (event, streamType) => {
     console.log('Audio Track: ', event)
     document.getElementById('audioElement').srcObject = event.streams[0];
     document.getElementById('audioElement').play().catch(e => console.error('Audio play error:', e));
 };
 
 // When video stream starts
-webrtc.onTrackVideo = async (event, type) => {
-    if (type === 'screen') {
+webrtc.onTrackVideo = async (event, streamType) => {
+    if (streamType === 'screen') {
         document.getElementById('screenVideoElement').srcObject = event.streams[0];
         document.getElementById('screenVideoElement').play().catch(e => console.error('Video play error:', e));
     } else {
@@ -121,11 +121,6 @@ webrtc.onStopVideo = (streamType, streamId) => {
     } else {
         document.getElementById('videoElement').srcObject = null;
     }
-};
-
-// When data message received
-webrtc.onDataMessage = (message) => {
-    console.log('Data Message: ', message);
 };
 
 // When connection is established

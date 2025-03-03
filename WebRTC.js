@@ -323,3 +323,5 @@ class WebRTC {
         }, {});
     };
 }
+
+export default WebRTC;

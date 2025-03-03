@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>1WebRTC Manual Audio & Screen Share</title>
+    <style>
+      .container {
+        margin: 0 auto;
+        padding: 20px;
+      }
+      .signaling-area {
+        display: flex;
+        gap: 20px;
+        margin: 20px 0;
+      }
+      textarea {
+        width: 100%;
+        height: 150px;
+        margin: 10px 0;
+      }
+      button {
+        padding: 5px 10px;
+        margin: 2px;
+      }
+      #remoteVideoProfile, #remoteVideoScreen {
+        width: 1280px;
+        height: 720px;
+        margin-top: 20px;
+        background: #000;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>WebRTC Manual Audio & Screen Share</h1>
+      <div class="controls">
+        <button id="initiateCall">1. Init (Viewer)</button>
+        <button id="joinCall">2. Join (Broadcaster)</button>
+        <button id="startScreenShare">Start SS</button>
+        <button id="stopScreenShare">Stop SS</button>
+        <button id="sendData">SD</button>
+        <button id="startVideo">StartVid</button>
+        <button id="stopVideo">StopVid</button>
+      </div>
+
+      <div class="signaling-area">
+        <div><textarea id="localSignalingData" readonly></textarea></div>
+        <div style="display: flex;">
+          <textarea id="remoteSignalingData" placeholder="Paste peer's signaling data here"></textarea>
+          <button id="processRemoteData">Process Peer Data</button>
+        </div>
+      </div>
+
+      <audio id="remoteAudio" autoplay controls></audio>
+        <video id="remoteVideoProfile" autoplay playsinline controls></video>
+        <video id="remoteVideoScreen" autoplay playsinline controls></video>
+    </div>
+
+    <script src="WebRTC.js"></script>
+    <script>
+      const initiateCallBtn = document.getElementById('initiateCall');
+      const joinCallBtn = document.getElementById('joinCall');
+      const startScreenShareBtn = document.getElementById('startScreenShare');
+      const stopScreenShareBtn = document.getElementById('stopScreenShare');
+      const processRemoteDataBtn = document.getElementById('processRemoteData');
+      const localSignalingData = document.getElementById('localSignalingData');
+      const remoteSignalingData = document.getElementById('remoteSignalingData');
+      const remoteAudio = document.getElementById('remoteAudio');
+      const remoteVideoProfile = document.getElementById('remoteVideoProfile');
+      const remoteVideoScreen = document.getElementById('remoteVideoScreen');
+
+      console.log(WebRTC.STREAM_CONSTRAINTS)
+      const webrtc = new WebRTC({
+        configuration: {
+          iceServers: [{
+            urls: [
+              "turn:turn.cloudflare.com:3478?transport=udp",
+              "turn:turn.cloudflare.com:3478?transport=tcp",
+              "turns:turn.cloudflare.com:5349?transport=tcp"
+            ],
+            username: "g0f238240bda3ad72722620e9a98fd7dc11d39cd6787dc332629f25f6d9a17e5",
+            credential: "dacfeb70ad1ef81def56b61b3041b302070f9d7c0818cb246f5c1fbac1780b2a"
+          }],
+        }
+      });
+
+      webrtc.onConnect = () => console.log('onConnect');
+      webrtc.onDisconnect = () => console.log('onDisconnect');
+      webrtc.onDataMessage = async (data) => {
+        console.log(data);
+      };
+      webrtc.onTrackAudio = (event) => {
+        console.log('Audio Track: ', event)
+        remoteAudio.srcObject = event.streams[0];
+        remoteAudio.play().catch(e => console.error('Audio play error:', e));
+      };
+      webrtc.onTrackVideo = async (event, type) => {
+        if (type === 'screen') {
+          remoteVideoScreen.srcObject = event.streams[0];
+          remoteVideoScreen.play().catch(e => console.error('Audio play error:', e));
+        } else {
+          remoteVideoProfile.srcObject = event.streams[0];
+          remoteVideoProfile.play().catch(e => console.error('Audio play error:', e));
+        }
+      };
+      webrtc.onStopVideo = (streamType, streamId) => {
+        console.log('onStopVideo: ', streamType, streamId);
+
+        if (streamType === 'screen') {
+          remoteVideoScreen.srcObject = null;
+        } else {
+          remoteVideoProfile.srcObject = null;
+        }
+      };
+
+      initiateCallBtn.addEventListener('click', async () => {
+        await webrtc.createConnection();
+        localSignalingData.value = JSON.stringify(await webrtc.createOffer());
+      });
+      joinCallBtn.addEventListener('click', async () => {
+        await webrtc.createConnection();
+        const answer = await webrtc.createAnswer(JSON.parse(remoteSignalingData.value))
+        localSignalingData.value = JSON.stringify(answer);
+      });
+      processRemoteDataBtn.addEventListener('click', async () => {
+        const answer = await webrtc.createAnswer(JSON.parse(remoteSignalingData.value))
+        localSignalingData.value = JSON.stringify(answer);
+      });
+      startScreenShareBtn.addEventListener('click', async () => {
+        await webrtc.startScreenShare();
+      });
+      stopScreenShareBtn.addEventListener('click', async () => {
+        webrtc.stopScreenShare();
+      });
+      document.getElementById('startVideo').addEventListener('click', async () => {
+        await webrtc.startCamera();
+      });
+      document.getElementById('stopVideo').addEventListener('click', async () => {
+        webrtc.stopCamera();
+      });
+      document.getElementById('sendData').addEventListener('click', async () => {
+        console.log(webrtc.streamList)
+      });
+    </script>
+  </body>
+</html>

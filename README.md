@@ -1,5 +1,3 @@
-README.md dosyasını İngilizce'ye çeviriyorum:
-
 # WebRTC Connection Library
 
 This library is developed to establish peer-to-peer (1-1) connections between browsers using WebRTC technology, share video/audio streams, and enable messaging through data channels.

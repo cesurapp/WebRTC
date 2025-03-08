@@ -94,10 +94,10 @@ class WebRTC {
                 if (data.cmd === WebRTC.CMD.OFFER) {
                     // Add Media Track
                     if (data.streamId) this.streamList[data.streamId] = data.streamType;
-                    await webrtc.createAnswer(data.data).then((answer) => webrtc.sendMessage({cmd: WebRTC.CMD.ANSWER, data: answer}))
+                    await this.createAnswer(data.data).then((answer) => this.sendMessage({cmd: WebRTC.CMD.ANSWER, data: answer}))
                 }
                 if (data.cmd === WebRTC.CMD.ANSWER) {
-                    await webrtc.processData(data.data);
+                    await this.processData(data.data);
                 }
                 if (data.cmd === WebRTC.CMD.SCREEN_SHARE_STOP) {
                     this.stopScreenShare(false);
@@ -120,6 +120,14 @@ class WebRTC {
         return this.peerConnection;
     }
 
+     async closeConnection() {
+        if (this.isConnected()) this.peerConnection.close();
+    }
+
+    isConnected() {
+        return this.peerConnection && this.peerConnection.connectionState === 'connected';
+    }
+    
     async startScreenShare() {
         try {
             if (this.screenStream) return;
@@ -127,6 +135,10 @@ class WebRTC {
             // Create Media
             this.screenStream = await navigator.mediaDevices.getDisplayMedia({video: this.supportedConstraints(WebRTC.STREAM_CONSTRAINTS.screen)}).catch(error => {
                 throw error;
+            });
+             // Listen for Screen Share Stop
+            this.screenStream.getVideoTracks()[0].addEventListener('ended', () => {
+                this.stopScreenShare();
             });
             this.screenStream.getTracks().forEach(track => {
                 this.applyBitrateConstraint(this.peerConnection.addTrack(track, this.screenStream), 5000000); // 5mbps
